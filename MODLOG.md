@@ -1,5 +1,28 @@
 # MODLOG: Giggleland performance mod
 
+## Start here (next version)
+Current release: **Pre-Release 0.20.1** (plugin 0.20.1, tag `v0.20.1-pre`), repo https://github.com/RealAnxiousGit/Giggleframes,
+local project `C:\Users\NickBin\Documents\Claude\Other Mods\Giggleland Performance Mod` (branch main). Plan from the user:
+testers try it, bugs get fixed, then **V1.0 stable**. Read CHANGELOG.md (what shipped), this file (how and why,
+gotchas), README.md (user-facing docs, project layout, tools).
+
+Release checklist (what 0.20 and 0.20.1 did):
+1. Close the game. Build: `"C:\Users\NickBin\Documents\Claude\Multiplayer Mods\Berry Bury Berry Multiplayer Mod\.tools\dotnet\dotnet.exe" build -c Release -p:CopyToGame=true`;
+   launch helper: `native\build.bat` (only when native/ changes); DXVK: `tools/get_dxvk.sh` (once, git-ignored).
+2. Bump `Version` in src/Plugin.cs; add a CHANGELOG.md section; update README.md version, zip name, log line.
+3. Test in game: `tools/launch.sh`, `tools/start_game.sh dx12`, `tools/ui_test.sh`, `tools/settings_sweep.sh`,
+   real mouse via the `where` dev command + `tools/mouse.ps1`. Needs `DevCommands = true` in
+   `BepInEx/config/gigglelandperf.cfg`; set it back to false afterwards (user's normal value).
+4. Back up the user's cfg first (`backups/gigglelandperf.cfg.pre-<version>`) and diff it afterwards.
+5. `tools/package.sh "Pre-Release X"` -> `artifacts/release/Giggleframes-Pre-Release-X.zip`.
+6. Commit + push main (attribution line), tag, then GitHub release via REST: token from `git credential fill`
+   (never print it), POST /repos/RealAnxiousGit/Giggleframes/releases (prerelease true, body = changelog section),
+   upload the zip to uploads.github.com, download it back and compare hashes.
+7. Update this file and the Claude memory note.
+
+User's game state to keep: DirectX 12, Graphics Preset Custom, FPS counter on, DevCommands false, no DXVK files in the
+game root, launch helper `version.dll` in the game root (installed by the mod).
+
 ## Facts
 - Install: `F:\SteamLibrary\steamapps\common\Giggleland`, Steam app 3370490, buildid 26276541.
 - Unity 2022.3.62f2 (7670c08855a9), IL2CPP, URP, D3D11. Company/product: `Hooked` / `Giggleland`.
@@ -61,6 +84,12 @@ Verified in game with the dev command file + screenshots:
    directly (it inherits SteamAppId). Vulkan isn't in the build: -force-vulkan -> "InitializeEngineGraphics failed".
 10. DX12 (Intel iGPU): flipping UniversalRenderPipelineAsset.m_AdditionalLightShadowsSupported at runtime hangs the
     GPU (device removed 887a0006). Starting with it off is fine. Turn shadows off per light instead.
+11. DXVK 3.x needs Vulkan 1.4 and 2.7 needs VK_KHR_maintenance5 (user's driver has neither): ship DXVK 2.6.2.
+12. A failed graphics device (DXVK) exits Unity before the BepInEx chainloader: recovery must live outside the plugin.
+13. Only an Options row's arrow texts take mouse clicks, and an EMPTY TMP text can't be hit (no geometry). Test UI
+    with the real mouse (`where` + tools/mouse.ps1), not just simulated clicks.
+14. Unity picks the graphics API before any managed code runs; boot.config ignores force-d3d12. Only the command
+    line works -> native version.dll launch helper.
 
 ## Tools
 - Build: `.tools/dotnet` from the Berry Bury Berry project: `dotnet build -c Release -p:CopyToGame=true` (game closed).
@@ -68,7 +97,8 @@ Verified in game with the dev command file + screenshots:
 - Dev commands (Debug.DevCommands=true): write lines to `BepInEx/gigglelandperf.cmd`: menuclick, settingsclick,
   select, nav, adjust, submit, back, visible, fonts, set, preset, fps, dump, mem, mip, unload, pause, popup, calib,
   bench, shot, applier.
-- `tools/launch.sh`, `cmd.sh`, `start_game.sh`, `ui_test.sh`, `perf_lab.sh`, `bisect_dx12.sh`.
+- `tools/launch.sh`, `cmd.sh`, `start_game.sh`, `ui_test.sh`, `perf_lab.sh`, `bisect_dx12.sh`, `settings_sweep.sh`, `mouse.ps1`.
+- Build: `.tools/dotnet/dotnet.exe` (Berry Bury Berry project) + `native\build.bat` for the launch helper; release with `tools/package.sh "<name>"`.
 
 ## Route
 BepInEx 6 IL2CPP plugin + Harmony. Inject an "Advanced" action row into the Graphics page that opens a cloned
@@ -104,3 +134,58 @@ BepInEx 6 IL2CPP plugin + Harmony. Inject an "Advanced" action row into the Grap
   for BepInEx/cache/giggleframes-started.txt and rolls back to DX11 (verified with DXVK 3.1.1 on purpose).
 - API lab (lab/api-0.20.txt, Low-Spec, busy/away): DX12 27.4/34, VK 22/34, DX11 20.3/33. relaxedBarriers: no gain.
 - Released as Pre-Release 0.20 (tools/package.sh, zip includes dxvk/).
+
+## 0.20.1 work (2026-10-29)
+User report after 0.20: (1) drop-downs don't open or change anything when clicked, (2) the game opens, closes and
+opens again at every launch, (3) check that every Advanced setting works.
+### Drop-down clicks
+- 0.20 was only ever tested with simulated clicks (`rowclick`, `itemclick` dev commands), never the real mouse.
+  New: `where <rowKey>` / `where item <n>` log screen pixels; `tools/mouse.ps1 x y` does a real SetCursorPos +
+  mouse_event click in the game window (DPI-aware). Reproduced: a real click on an Advanced row did nothing.
+- Gotcha 13: in the game, only an Options row's arrow TMP texts take clicks (value text and label don't; checked
+  on the game's own Quality Preset row). We hid arrowL and emptied arrowR's text for the caret, and an EMPTY TMP
+  text can't be hit (GraphicRaycaster skips graphics with no geometry, depth -1). So nothing was clickable.
+- Fix: Dropdown.AddClickArea puts a transparent Image "GiggleframesClick" over each Options row (last sibling),
+  with an EventTrigger PointerClick that opens the list, and panel.AddWheelHandler on it so the wheel still
+  scrolls. Verified with real clicks: row opens list, item click saves (shadowQuality 2 -> 3), outside click
+  closes, slider-track clicks snap (cascades 3, 0).
+### Open-close-reopen at launch
+- Measured: Steam launch -> Giggleland.exe with no args comes up on D3D11 (the build's default), the mod's
+  CheckStartup sees saved DX12 at the main menu (~60 s) and relaunches with -force-d3d12.
+- Unity decides the API before ANY managed code: when BepInEx's log appears (~5 s) Player.log already says
+  "GfxDevice: creating device client". The window appears at ~0.8 s. boot.config `force-d3d12=1` / `force-d3d12=`
+  are ignored (gotcha 14).
+- Fix: native launch helper `native/version_proxy.c` -> `version.dll` next to the exe (UnityPlayer.dll imports
+  VERSION.dll, not a KnownDLL, so the app-dir copy loads). DllMain reads BepInEx/config/giggleframes-launch.txt
+  (only "-force-d3d11"/"-force-d3d12" accepted), skips if the command line already has "-force-", and rewrites
+  the command line: new buffers, PEB ProcessParameters->CommandLine, plus kernelbase's cached UNICODE_STRING /
+  ANSI_STRING found by scanning its writable sections for the old buffer pointer (what GetCommandLineW/A
+  return). Exports forward to `\.\GLOBALROOT\SystemRoot\System32\version.dll.<name>`. No CRT (/NODEFAULTLIB,
+  own memcpy). Sets env GIGGLEFRAMES_LAUNCH_ARG=applied|gave-up for the mod's log.
+- Failed-start guard: helper counts launches it changed in BepInEx/cache/giggleframes-launch.pending; the mod
+  deletes it in Plugin.Load (device creation succeeded). Count >= 2 -> helper stops ("gave-up"), mod saves DX11.
+- Mod side (RenderApi.Init): writes the launch file on start and on every renderApi change; installs the helper
+  from plugins/Giggleframes/launcher/version.dll; an older copy of ours (has the UTF-16 marker
+  "giggleframes-launch.txt") is renamed to version.dll.old (a loaded DLL can be renamed, not overwritten);
+  someone else's version.dll is left alone (falls back to the 0.20 restart).
+- Verified: Steam launch -> one process, WMI command line shows "-force-d3d12", log "running Direct3D12, saved
+  DirectX 12, launch helper applied". Upgrade path (old helper -> new) verified.
+- Build: `native\build.bat` (vswhere -> vcvars64 -> cl/link; VS 18 BuildTools on this PC). .bat needs CRLF.
+### Settings sweep
+- `probe` dev command (Diag.Probe): one line with everything the options write. `tools/settings_sweep.sh` sets
+  each option to each value in gameplay and reports options whose values all probe the same (lab/settings-sweep.txt; the 0.20.1 report is lab/settings-sweep-0.20.1.txt).
+- Draw Distance: the game's MainCamera far is 50 m, so 50/55 m did nothing -> slider now 10-45 m + Game (2..10;
+  old 11/12 clamp to 10 = Game).
+- Sweep result (Rory's Rally, DX12): all options change their targets except Depth of Field (all ~40 Beautify
+  volumes there have depthOfField=false already) and Vegetation (Terrain.activeTerrains empty there). FSR Sharpness
+  only writes while upscaling = FSR (verified 0.0/0.5/1.0 with upscaling=2). Volumetric Lighting Off turns the
+  VolumetricLightsRenderFeature off; the VolumetricLight components still read enabled=true (game re-enables?),
+  harmless since nothing draws without the feature. Volumetric Fog: no fog volumes in Rory's Rally, only the
+  manager's downscaling changes.
+- Vulkan -> DX12 with "Later": WriteLaunchFile writes -force-d3d11 while our DXVK files are in the game root, so
+  DX12 never starts with DXVK's dxgi.dll loaded; CheckStartup's restart removes DXVK and relaunches with -force-d3d12.
+- Released as Pre-Release 0.20.1 (tag v0.20.1-pre).
+### Tools added
+- `tools/mouse.ps1`, `tools/crop.ps1` (crop a strip of a `shot`), `tools/settings_sweep.sh`; dev commands `where`, `probe`.
+- `tools/launch.sh` now waits for "Advanced page added" (it waited for a `[render]` dump that only DumpOnLoad prints).
+- `cmd.sh` cuts lines at 260 chars; read long lines from LogOutput.log directly.

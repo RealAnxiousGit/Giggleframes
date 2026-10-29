@@ -54,5 +54,8 @@
       <DxvkFiles Include="dxvk\*.dll;dxvk\LICENSE;res\dxvk.conf" />
     </ItemGroup>
     <Copy SourceFiles="@(DxvkFiles)" DestinationFolder="$(GameDir)\BepInEx\plugins\Giggleframes\dxvk" SkipUnchangedFiles="true" />
+    <!-- Launch helper (native\build.bat). The mod puts it next to the exe itself. -->
+    <Copy SourceFiles="artifacts\native\version.dll" DestinationFolder="$(GameDir)\BepInEx\plugins\Giggleframes\launcher"
+          Condition="Exists('artifacts\native\version.dll')" SkipUnchangedFiles="true" />
   </Target>
 </Project>

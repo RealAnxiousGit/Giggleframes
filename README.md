@@ -2,7 +2,7 @@
 
 A performance mod for **Giggleland** (Steam). It adds an **Advanced** page to the game's Graphics settings with the heavy rendering options the game doesn't expose: volumetric fog, volumetric lighting, shadow quality, ambient occlusion, reflections, post-processing and more. It also adds a DirectX 11 / DirectX 12 / Vulkan (DXVK) switch, options that keep busy rooms playable, and presets tuned for integrated graphics.
 
-**Version:** Pre-Release 0.20 (plugin version 0.20.0). See the [changelog](CHANGELOG.md).
+**Version:** Pre-Release 0.20.1 (plugin version 0.20.1). See the [changelog](CHANGELOG.md).
 **Tested on:** Giggleland v1.0.2 (Steam build 26276541, Unity 2022.3.62f2, IL2CPP), BepInEx 6.0.0-be.791, Windows 11.
 
 ---
@@ -21,9 +21,9 @@ Every option starts at **Preset**, which leaves the game's value alone. A fresh 
 
 - **Advanced page** in Graphics settings (main menu and pause menu), styled like the game's own pages
 - **Graphics Preset** drop-down at the top: *Game Default*, *Very Low*, *Low-Spec*, *Balanced*; shows *Custom* once you change a single option
-- **Drop-down lists** for every choice (click or Submit to open, Up/Down/Submit to pick, Back to close; Left/Right still step) and **sliders** for numeric values, snapping to whole steps inside safe limits
+- **Drop-down lists** for every choice (click anywhere on the row or press Submit to open, click or Up/Down/Submit to pick, click outside or Back to close; Left/Right still step) and **sliders** for numeric values, snapping to whole steps inside safe limits
 - **Render API**: DirectX 11, DirectX 12 or **Vulkan (DXVK)**, with a *Restart / Later* dialog. Restart reopens the game on the new API by itself
-- **Draw Distance** (slider, 10-55 m or *Game*): how far the main camera draws
+- **Draw Distance** (slider, 10-45 m or *Game*, which is 50 m): how far the main camera draws
 - **Small Object Culling**: Off / Low / Medium / High; skips props too small to matter at their distance
 - **Upscaling filter**: Bilinear, FSR 1.0 or Point, plus an **FSR Sharpness** slider. The game's Medium preset already renders at 0.5x scale, so FSR mostly makes it look sharper
 - **Volumetric Fog**: Off / Low / Medium / High (raymarch quality, downscaling, detail noise, high-quality scattering)
@@ -106,22 +106,24 @@ Giggleland is an IL2CPP Unity game, which needs the bleeding-edge BepInEx 6 buil
 
 ### 2. Install Giggleframes
 
-1. Download `Giggleframes-Pre-Release-0.20.zip` from [Releases](https://github.com/RealAnxiousGit/Giggleframes/releases).
+1. Download `Giggleframes-Pre-Release-0.20.1.zip` from [Releases](https://github.com/RealAnxiousGit/Giggleframes/releases).
 2. Extract it into the game folder. The plugin should end up at
-   `Giggleland\BepInEx\plugins\Giggleframes\Giggleframes.dll`, with DXVK in `...\Giggleframes\dxvk`.
-   If you're updating from 0.10, overwrite the old files; your settings carry over.
+   `Giggleland\BepInEx\plugins\Giggleframes\Giggleframes.dll`, with DXVK in `...\Giggleframes\dxvk` and the launch helper in `...\Giggleframes\launcher`.
+   If you're updating from an older version, overwrite the old files; your settings carry over.
 3. Start the game and open **Settings → Graphics → Advanced**.
 
-`BepInEx\LogOutput.log` should contain `Giggleframes 0.20.0 loaded`.
+`BepInEx\LogOutput.log` should contain `Giggleframes 0.20.1 loaded`.
 
 ### Uninstalling
 
-Switch the Render API back to DirectX 11 or 12 first if you use Vulkan (or delete `d3d11.dll`, `dxgi.dll` and `dxvk.conf` next to `Giggleland.exe`). Then delete `BepInEx\plugins\Giggleframes`. To remove BepInEx as well, delete `winhttp.dll`, `doorstop_config.ini`, `.doorstop_version`, `changelog.txt`, the `dotnet` folder and the `BepInEx` folder. Your saves are not touched.
+Switch the Render API back to DirectX 11 or 12 first if you use Vulkan (or delete `d3d11.dll`, `dxgi.dll` and `dxvk.conf` next to `Giggleland.exe`). Then delete `BepInEx\plugins\Giggleframes` and the launch helper `version.dll` next to `Giggleland.exe`. To remove BepInEx as well, delete `winhttp.dll`, `doorstop_config.ini`, `.doorstop_version`, `changelog.txt`, the `dotnet` folder and the `BepInEx` folder. Your saves are not touched.
 
 ## Render API notes
 
 - Unity picks the graphics API before any mod code runs, so switching needs a restart. *Restart* closes the game and starts `Giggleland.exe` again with `-force-d3d11` or `-force-d3d12`. *Later* keeps the choice for the next launch.
-- When you start the game from Steam and the saved API isn't the one running, the mod restarts the game once onto the saved API. If the saved API fails to start twice in a row, the mod falls back to DirectX 11.
+- The game's default is DirectX 11. So that a saved DirectX 12 doesn't need a restart at every launch, the mod puts a small launch helper, `version.dll`, next to `Giggleland.exe` (source: `native/version_proxy.c`). Windows loads it before Unity reads its command line, and it adds `-force-d3d12` (or `-force-d3d11`) from `BepInEx\config\giggleframes-launch.txt`. It adds nothing else, and every `version.dll` call goes on to Windows' own copy. If another mod already has a `version.dll` there, the mod leaves it alone.
+- Without the helper (first launch after installing, or another `version.dll` in the way), the mod restarts the game once onto the saved API, as in 0.20.
+- If the saved API fails to start twice in a row, the helper stops adding it (or the restart gives up), and the mod falls back to DirectX 11.
 - A `-force-d3d11`, `-force-d3d12`, `-force-vulkan` or `-force-gl` that you put in Steam's launch options always wins over the menu.
 
 ### Vulkan (DXVK)
@@ -162,6 +164,7 @@ dotnet build -c Release -p:GameDir="C:\Program Files (x86)\Steam\steamapps\commo
 - `GameDir` defaults to `F:\SteamLibrary\steamapps\common\Giggleland`; pass your own path.
 - The DLL is written to `artifacts\build\Giggleframes.dll`.
 - Add `-p:CopyToGame=true` to copy it into `BepInEx\plugins\Giggleframes` (close the game first).
+- For the launch helper, run `native\build.bat` once (needs the Visual Studio C++ build tools). It writes `artifacts\native\version.dll`, which the build copies into the plugin's `launcher` folder.
 - For the Vulkan option, run `tools/get_dxvk.sh` once first: it downloads DXVK 2.6.2 from GitHub, checks its SHA-256 and puts the 64-bit `d3d11.dll`, `dxgi.dll` and license in `dxvk/` (git-ignored). The build copies them, with `res/dxvk.conf`, into the plugin's `dxvk` folder.
 
 ### Project layout
@@ -176,7 +179,8 @@ dotnet build -c Release -p:GameDir="C:\Program Files (x86)\Steam\steamapps\commo
 | `src/Applier.cs` | Applies options to the URP asset, renderer features, fog, volumetric lights, post volumes, terrain and lights; restores the game's values when an option goes back to Preset |
 | `src/AdvancedPage.cs` | Builds the Advanced page by cloning the game's Graphics page and adds the Advanced row |
 | `src/Patches.cs` | Hooks on the game's settings code so the mod reapplies after the game does |
-| `src/RenderApi.cs` | Render API restart, startup check, DXVK install/removal and the Vulkan watchdog |
+| `src/RenderApi.cs` | Render API restart, startup check, launch helper install, DXVK install/removal and the Vulkan watchdog |
+| `native/version_proxy.c`, `native/build.bat` | Launch helper (`version.dll`): adds the saved Render API to the command line at startup |
 | `res/dxvk.conf` | DXVK settings installed with the Vulkan option |
 | `src/Bench.cs`, `src/Dev.cs`, `src/Diag.cs` | Benchmark, test commands, render and memory dumps |
 | `tools/` | Test scripts (below) |
@@ -190,6 +194,8 @@ With `DevCommands = true`, the mod reads one command per line from `BepInEx\gigg
 - `tools/bisect_dx12.sh` changes settings one at a time on DirectX 12 and reports the first one that hangs the GPU
 - `tools/busy_lab.sh <yaw> "<on>|<off>;..."` benches experiments facing one direction; `tools/api_bench.sh dx11|dx12|vk [preset]` compares APIs
 - `tools/menu_cycle.sh <api> [cycles]` goes to the main menu and back into the game repeatedly, watching for a crash
+- `tools/settings_sweep.sh [option ...]` sets every Advanced option to each of its values in a running game and reports any that change nothing (results in `lab/settings-sweep.txt`)
+- `tools/mouse.ps1 <x> <y>` clicks the real mouse in the game window, at positions from the `where <row>` / `where item <n>` commands
 
 The scripts assume the Steam install path in their first lines; edit `G=` for yours.
 

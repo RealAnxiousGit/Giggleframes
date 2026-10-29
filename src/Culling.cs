@@ -17,6 +17,7 @@ namespace GigglelandPerf
     static class Culling
     {
         static bool hooked;
+        static float lastFar;
 
         public static void Init()
         {
@@ -35,6 +36,7 @@ namespace GigglelandPerf
                 if (cap > 0f && cam != null && cam.cameraType == CameraType.Game && cam.targetTexture == null && cam == Camera.main
                     && cam.farClipPlane > cap)
                     cam.farClipPlane = cap;
+                if (cam != null && cam == Camera.main) lastFar = cam.farClipPlane;
             }
             catch (Exception e) { Plugin.Log.LogWarning("draw distance: " + e.Message); }
         }
@@ -115,6 +117,6 @@ namespace GigglelandPerf
             hiddenCount = 0;
         }
 
-        public static string Status => $"culling {list.Count} candidates, {hiddenCount} hidden";
+        public static string Status => $"culling {list.Count} candidates, {hiddenCount} hidden, main camera far {lastFar:F0} m";
     }
 }

@@ -19,6 +19,7 @@ namespace GigglelandPerf
         static float fps, ms;
 
         public static bool On => Settings.FpsCounter.I == 1;
+        public static bool Visible => root != null && root.activeSelf;
 
         public static Color ColorFor(float f) => f >= 60f ? Green : f >= 30f ? Yellow : Red;
 

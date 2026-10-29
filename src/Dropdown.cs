@@ -46,6 +46,7 @@ namespace GigglelandPerf
                 }
                 if (r?.setting == null || r.setting.type != RowType.Options) continue;
                 if (r.arrowL != null) r.arrowL.gameObject.SetActive(false);
+                AddClickArea(p, r);
                 var a = r.arrowR;
                 if (a == null || a.transform.Find("Caret") != null) continue;
                 // The page animates the arrow itself (hover, punch), so the caret rides along as a child:
@@ -66,6 +67,39 @@ namespace GigglelandPerf
                 t.raycastTarget = false;
                 t.text = a.text;
                 a.text = "";
+            }
+        }
+
+        /// In the game only the arrows of an Options row take clicks, and an empty text (the right arrow
+        /// once its glyph moves to the caret) can't be hit at all. An invisible graphic over the whole row
+        /// makes a click anywhere on it open the list. It sits on top of the row (nothing else on an Options
+        /// row takes clicks now) and passes the mouse wheel on to the page's scrolling.
+        static void AddClickArea(SettingsListPanel p, SettingsListPanel.Row r)
+        {
+            if (r.root == null || r.root.Find("GiggleframesClick") != null) return;
+            var go = new GameObject("GiggleframesClick", Il2CppInterop.Runtime.Il2CppType.Of<RectTransform>());
+            var rt = go.GetComponent<RectTransform>();
+            rt.SetParent(r.root, false);
+            rt.SetAsLastSibling();
+            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = rt.offsetMax = Vector2.zero;
+            var img = go.AddComponent<Image>();
+            img.color = new Color(0f, 0f, 0f, 0f);
+            img.raycastTarget = true;
+            p.AddWheelHandler(go);
+            string k = r.setting.key;
+            OnEvent(go, EventTriggerType.PointerClick, () => OpenByKey(p, k));
+        }
+
+        static void OpenByKey(SettingsListPanel p, string k)
+        {
+            if (p == null || !p.IsVisible || AnyOpen) return;
+            var rows = p.rows;
+            for (int i = 0; rows != null && i < rows.Count; i++)
+            {
+                if (rows[i]?.setting?.key != k) continue;
+                p.SetSelected(i);
+                Open(p, i);
+                return;
             }
         }
 

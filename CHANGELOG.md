@@ -1,5 +1,45 @@
 # Changelog
 
+## Pre-Release 0.20.1 (plugin 0.20.1)
+
+### Drop-down menus work with the mouse
+- Clicking an option on the Advanced page now opens its drop-down list, and clicking a choice in the list
+  changes the setting. In 0.20, mouse clicks on those rows did nothing: the game only takes clicks on a row's
+  ‹ › arrows, and the arrows had been hidden to make room for the drop-down caret. Now a click anywhere on the
+  row opens the list. Keyboard and controller work as before.
+- Clicking outside an open list closes it. The mouse wheel still scrolls the page over the rows.
+
+### No more close-and-reopen at startup
+- With DirectX 12 saved, the game started on DirectX 11 (its default), then about a minute in the mod closed it
+  and opened it again with DirectX 12. The game now starts straight on the saved Render API.
+- How: a small launch helper, `version.dll`, sits next to `Giggleland.exe` (the mod puts it there itself; it ships
+  in `BepInEx/plugins/Giggleframes/launcher`). Windows loads it just before Unity reads its command line, and it
+  adds `-force-d3d12` when that's your saved choice. It only ever adds `-force-d3d11` or `-force-d3d12`, and it
+  leaves the command line alone if your Steam launch options already pick an API. All other calls go to
+  Windows' own `version.dll`.
+- The first launch after installing 0.20.1 still restarts once (the helper isn't in place yet); after that, it doesn't.
+- Safety: if the saved API can't start twice in a row (for example a GPU without DirectX 12), the helper stops
+  adding it, the game starts on DirectX 11, and the mod saves DirectX 11.
+- Changing the Render API in the menu still asks to restart, because Unity can't switch API while running.
+
+### Settings checked one by one
+Every Advanced option was set to each of its values in game (Rory's Rally, DirectX 12) and the values it
+writes were read back (`tools/settings_sweep.sh`, report in `lab/settings-sweep-0.20.1.txt`):
+
+- **Working:** Upscaling Filter, FSR Sharpness (when Upscaling is FSR 1.0), Volumetric Fog, Volumetric Lighting,
+  Shadow Quality, Shadow Cascades, Local Light Shadows, Lighting Quality, Ambient Occlusion, Screen Space
+  Reflections, Post-Processing Quality, Bloom, Lens Flares, Level of Detail, Draw Distance, Small Object Culling,
+  Texture Memory, Show FPS Counter. Choices that match the game's own value (for example Shadow Quality *High*)
+  look the same as *Preset*, as they should.
+- **Fixed: Draw Distance** went up to 55 m, but the game itself only draws to 50 m, so 50 m and 55 m did
+  nothing. The slider now runs 10-45 m, then *Game*. A saved 50 m or 55 m becomes *Game*, which is what it was doing anyway.
+- **Not testable in that area:** Depth of Field (every post-processing volume there already has it off) and
+  Vegetation Detail (no terrain there). Their code is unchanged from 0.20.
+
+### Also
+- Switching from Vulkan to DirectX 12 with *Later* no longer risks starting DirectX 12 with DXVK's files still in the game
+  folder: the game starts on DirectX 11 and the mod restarts it onto DirectX 12 after taking DXVK out.
+
 ## Pre-Release 0.20 (plugin 0.20.0)
 
 ### Busy views no longer drag the frame rate down as hard

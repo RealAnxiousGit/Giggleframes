@@ -12,7 +12,7 @@ namespace GigglelandPerf
     public class Plugin : BasePlugin
     {
         public const string Guid = "gigglelandperf";
-        public const string Version = "0.20.0"; // Pre-Release 0.20
+        public const string Version = "0.20.1"; // Pre-Release 0.20.1
 
         internal static ManualLogSource Log;
         internal static Plugin Instance;
@@ -32,6 +32,7 @@ namespace GigglelandPerf
                 catch (Exception e) { Log.LogError($"patch {t.Name} failed: {e.Message}"); }
             }
 
+            RenderApi.Init();
             Culling.Init();
             AddComponent<Runner>();
             SceneManager.sceneLoaded += (Action<Scene, LoadSceneMode>)OnSceneLoaded;

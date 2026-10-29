@@ -78,6 +78,19 @@ namespace GigglelandPerf
                         Plugin.Log.LogInfo($"font {t.transform.parent?.name}/{t.name}: {t.font?.name} {t.fontSize} '{t.text}'");
                     break;
                 case "adjust": Visible()?.AdjustSelected(int.Parse(a[1])); break;
+                case "where":
+                    // Screen pixel (from the top-left) of a row's value text, or a drop-down item: for real mouse clicks.
+                    RectTransform wrt = null;
+                    if (a[1] == "item") wrt = GameObject.Find("GiggleframesDropdown/List/Item_" + a[2])?.GetComponent<RectTransform>();
+                    else { var wr = Visible()?.FindRow(a[1]); wrt = wr?.valueText != null ? wr.valueText.rectTransform : wr?.root; }
+                    if (wrt == null) { Plugin.Log.LogWarning("where: nothing"); break; }
+                    var wc = new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<Vector3>(4);
+                    wrt.GetWorldCorners(wc);
+                    var wcv = wrt.GetComponentInParent<Canvas>()?.rootCanvas;
+                    var cam = wcv != null && wcv.renderMode != RenderMode.ScreenSpaceOverlay ? wcv.worldCamera : null;
+                    var sp0 = RectTransformUtility.WorldToScreenPoint(cam, (wc[0] + wc[2]) * 0.5f);
+                    Plugin.Log.LogInfo($"where {string.Join(" ", a, 1, a.Length - 1)}: {sp0.x:F0} {Screen.height - sp0.y:F0} of {Screen.width}x{Screen.height}");
+                    break;
                 case "submit": Visible()?.SubmitSelected(); break;
                 case "rowclick":
                     // Same call the row's own click handler makes.
@@ -111,6 +124,7 @@ namespace GigglelandPerf
                 case "preset": AdvancedPage.Preset(string.Join(" ", a, 1, a.Length - 1)); break;
                 case "fps": Settings.FpsCounter.Index.Value = a[1] == "1" ? 1 : 0; break;
                 case "culling": Plugin.Log.LogInfo(Culling.Status); break;
+                case "probe": Plugin.Log.LogInfo("probe " + (a.Length > 1 ? a[1] : "") + ": " + Diag.Probe()); break;
                 case "dump": Diag.DumpRenderState(); break;
                 case "mem": Diag.DumpMemory(); break;
                 case "mip": QualitySettings.globalTextureMipmapLimit = int.Parse(a[1]); break;

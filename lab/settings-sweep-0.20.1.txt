@@ -1,0 +1,83 @@
+# Pre-Release 0.20.1 settings sweep, Rory's Rally, DirectX 12 (tools/settings_sweep.sh). Each line: value -> probe fields that changed vs the first value.
+# FSR Sharpness re-run with upscaling = FSR: fsr=True/0.0, 0.5, 1.0 for levels 0, 5, 10.
+      2: fogMgr=2/False
+      3: fogMgr=1.5/False
+      4: (same as 0)
+OK   volumetricLights (4 distinct of 5)
+      1: vlFeat=False/1
+      2: vlFeat=True/2 vl=2of2/rq8/sh0
+      3: vlFeat=True/1.5 vl=2of2/rq12/sh0
+      4: (same as 0)
+OK   shadowQuality (5 distinct of 6)
+      1: main=False/_2048/True/Medium
+      2: main=True/_1024/False/Medium
+      3: main=True/_2048/True/Low
+      4: (same as 0)
+      5: main=True/_4096/True/High
+OK   shadowCascades (4 distinct of 5)
+      1: casc=1
+      2: casc=2
+      3: (same as 0)
+      4: casc=4
+OK   localShadows (4 distinct of 5)
+      1: addRes=_256 localShadowed=1
+      2: addRes=_1024
+      3: addRes=_2048
+      4: (same as 0)
+OK   lightingQuality (4 distinct of 5)
+      1: perObj=2
+      2: perObj=4
+      3: perObj=6
+      4: (same as 0)
+OK   ambientOcclusion (4 distinct of 5)
+      1: ao=False/True/High/High/InterleavedGradient/DepthNormals
+      2: ao=True/True/Low/Low/InterleavedGradient/DepthNormals
+      3: ao=True/True/Medium/Medium/InterleavedGradient/DepthNormals
+      4: (same as 0)
+OK   reflections (4 distinct of 5)
+      1: ssrFeat=False
+      2: ssr=3/12/2/False
+      3: ssr=2/24/1/False
+      4: (same as 0)
+OK   postQuality (3 distinct of 4)
+      1: beautify=True/True/2/bloom0.00/sun0.00/ana0.00/dofFalse beautify=True/True/2/bloom0.00/sun0.00/ana0.00/dofFalse beautify=True/True/2/bloom0.00/sun0.00/ana0.00/dofFalse beautify=True/True/2/bloom0.00/sun0.00/ana0.00/dofFalse bea
+      2: beautify=True/False/2/bloom0.00/sun0.00/ana0.00/dofFalse beautify=True/False/2/bloom0.00/sun0.00/ana0.00/dofFalse beautify=True/False/2/bloom0.00/sun0.00/ana0.00/dofFalse beautify=True/False/2/bloom0.00/sun0.00/ana0.00/dofFalse
+      3: (same as 0)
+OK   bloom (2 distinct of 2)
+      1: beautify=False/False/2/bloom0.00/sun0.00/ana0.00/dofFalse beautify=False/False/2/bloom0.00/sun0.00/ana0.00/dofFalse beautify=False/False/2/bloom0.00/sun0.00/ana0.01/dofFalse beautify=False/False/2/bloom0.00/sun0.00/ana0.00/dofF
+OK   lensFlares (2 distinct of 2)
+      1: beautify=False/False/2/bloom0.30/sun0.00/ana0.00/dofFalse
+FAIL depthOfField (1 distinct of 2)
+      1: (same as 0)
+OK   lodBias (5 distinct of 5)
+      1: lod=0.5
+      2: lod=0.75
+      3: lod=1
+      4: lod=1.5
+OK   drawDistanceSteps (9 distinct of 11)
+      3: 15
+      4: 20
+      5: 25
+      6: 30
+      7: 35
+      8: 40
+      9: 45
+      10: 50
+      11: 50
+      12: 50
+OK   smallObjectCulling (4 distinct of 4)
+      1: 12894 2304
+      2: 12894 3804
+      3: 12894 5172
+FAIL vegetation (1 distinct of 4)
+      1: (same as 0)
+      2: (same as 0)
+      3: (same as 0)
+OK   textureBudget (5 distinct of 5)
+      1: tex=512
+      2: tex=1024
+      3: tex=2048
+      4: tex=4096
+OK   fpsCounter (2 distinct of 2)
+      1: fpsCounter=True
+

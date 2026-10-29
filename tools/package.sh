@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 # Builds the release zip: BepInEx/plugins/Giggleframes/{Giggleframes.dll, README.txt, LICENSE.txt,
-# CHANGELOG.txt, dxvk/{d3d11.dll, dxgi.dll, dxvk.conf, LICENSE}}. Run after a Release build and tools/get_dxvk.sh.
+# CHANGELOG.txt, dxvk/{d3d11.dll, dxgi.dll, dxvk.conf, LICENSE}, launcher/version.dll}.
+# Run after a Release build, native/build.bat and tools/get_dxvk.sh.
 # Usage: package.sh "<version name>"   e.g. package.sh "Pre-Release 0.20"
 cd "$(dirname "$0")/.."
 name=${1:?version name}; file="Giggleframes-${name// /-}.zip"
 st=artifacts/stage; out=artifacts/release
-rm -rf "${st:?}"; mkdir -p "$st/BepInEx/plugins/Giggleframes/dxvk" "$out"
+rm -rf "${st:?}"; mkdir -p "$st/BepInEx/plugins/Giggleframes/dxvk" "$st/BepInEx/plugins/Giggleframes/launcher" "$out"
 P="$st/BepInEx/plugins/Giggleframes"
 cp artifacts/build/Giggleframes.dll "$P/"
 cp LICENSE "$P/LICENSE.txt"; cp CHANGELOG.md "$P/CHANGELOG.txt"
 cp dxvk/d3d11.dll dxvk/dxgi.dll dxvk/LICENSE res/dxvk.conf "$P/dxvk/"
+cp artifacts/native/version.dll "$P/launcher/"
 ver=$(grep -o 'Version = "[0-9.]*"' src/Plugin.cs | cut -d'"' -f2)
 cat > "$P/README.txt" <<TXT
 Giggleframes - $name (plugin $ver)
@@ -21,6 +23,10 @@ The plugin ends up at BepInEx/plugins/Giggleframes/Giggleframes.dll.
 
 The dxvk folder holds DXVK 2.6.2 (https://github.com/doitsujin/dxvk, zlib license in dxvk/LICENSE)
 for the Vulkan (DXVK) Render API option. The mod copies it next to the game only when you pick Vulkan.
+
+launcher/version.dll is the mod's launch helper. The mod copies it next to Giggleland.exe so the game
+starts straight on the Render API you saved (no close-and-reopen). To uninstall the mod, also delete
+version.dll next to Giggleland.exe.
 
 Full instructions, features and source: https://github.com/RealAnxiousGit/Giggleframes
 TXT

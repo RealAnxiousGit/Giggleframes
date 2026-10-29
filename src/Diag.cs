@@ -177,6 +177,87 @@ namespace GigglelandPerf
             Plugin.Log.LogInfo(sb.ToString());
         }
 
+        /// One line with every value an Advanced option writes, for tools/settings_sweep.sh: each option's
+        /// choices should give different lines.
+        public static string Probe()
+        {
+            var sb = new StringBuilder();
+            var urp = GraphicsSettings.currentRenderPipeline?.TryCast<UniversalRenderPipelineAsset>();
+            if (urp != null)
+            {
+                sb.Append($"up={urp.upscalingFilter} fsr={urp.fsrOverrideSharpness}/{urp.fsrSharpness:F1} ");
+                sb.Append($"main={urp.m_MainLightShadowsSupported}/{urp.m_MainLightShadowmapResolution}/{urp.m_SoftShadowsSupported}/{urp.m_SoftShadowQuality} ");
+                sb.Append($"casc={urp.m_ShadowCascadeCount} addRes={urp.m_AdditionalLightsShadowmapResolution} perObj={urp.m_AdditionalLightsPerObjectLimit} blend={urp.m_ReflectionProbeBlending} ");
+                var list = urp.m_RendererDataList;
+                for (int i = 0; list != null && i < list.Length; i++)
+                {
+                    var feats = list[i]?.rendererFeatures;
+                    for (int f = 0; feats != null && f < feats.Count; f++)
+                    {
+                        var ft = feats[f];
+                        if (ft == null) continue;
+                        if (ft.TryCast<ScreenSpaceAmbientOcclusion>() is { } ao)
+                        {
+                            var s = ao.m_Settings;
+                            sb.Append($"ao={ao.isActive}/{s?.Downsample}/{s?.Samples}/{s?.BlurQuality}/{s?.AOMethod}/{s?.Source} ");
+                        }
+                        else if (ft.TryCast<ShinySSRR.ShinySSRR>() != null) sb.Append($"ssrFeat={ft.isActive} ");
+                        else if (ft.TryCast<VolumetricLights.VolumetricLightsRenderFeature>() is { } vf) sb.Append($"vlFeat={vf.isActive}/{vf.downscaling} ");
+                    }
+                }
+            }
+            sb.Append($"lod={QualitySettings.lodBias} tex={QualitySettings.streamingMipmapsMemoryBudget} ");
+
+            var mgr = VolumetricFogAndMist2.VolumetricFogManager._instance;
+            if (mgr != null) sb.Append($"fogMgr={mgr.downscaling}/{mgr.scatteringHighQuality} ");
+            int fogOn = 0, fogRq = 0, fogDetail = 0, fogs = 0;
+            var fl = VolumetricFogAndMist2.VolumetricFog.volumetricFogs;
+            for (int i = 0; fl != null && i < fl.Count; i++)
+            {
+                var f = fl[i];
+                if (f == null) continue;
+                fogs++;
+                if (f.enabled) fogOn++;
+                if (f.profile != null) { fogRq += f.profile.raymarchQuality; if (f.profile.useDetailNoise) fogDetail++; }
+            }
+            sb.Append($"fog={fogOn}of{fogs}/rq{fogRq}/detail{fogDetail} ");
+            int vlOn = 0, vlRq = 0, vlSh = 0, vls = 0;
+            var vll = VolumetricLights.VolumetricLight.volumetricLights;
+            for (int i = 0; vll != null && i < vll.Count; i++)
+            {
+                var l = vll[i];
+                if (l == null) continue;
+                vls++;
+                if (l.enabled) vlOn++;
+                vlRq += l.raymarchQuality;
+                if (l.enableShadows) vlSh++;
+            }
+            sb.Append($"vl={vlOn}of{vls}/rq{vlRq}/sh{vlSh} ");
+            int localShadowed = 0;
+            foreach (var l in Object.FindObjectsOfType<Light>())
+                if (l.type != LightType.Directional && l.shadows != LightShadows.None) localShadowed++;
+            sb.Append($"localShadowed={localShadowed} ");
+
+            foreach (var v in Object.FindObjectsOfType<Volume>())
+            {
+                var comps = v.sharedProfile?.components;
+                for (int i = 0; comps != null && i < comps.Count; i++)
+                {
+                    if (comps[i].TryCast<Beautify.Universal.Beautify>() is { } b)
+                        sb.Append($"beautify={b.turboMode.value}/{b.bloomQuickerBlur.value}/{b.depthOfFieldDownsampling.value}/bloom{b.bloomIntensity.value:F2}" +
+                                  $"/sun{b.sunFlaresIntensity.value:F2}/ana{b.anamorphicFlaresIntensity.value:F2}/dof{b.depthOfField.value} ");
+                    else if (comps[i].TryCast<ShinySSRR.ShinyScreenSpaceRaytracedReflections>() is { } r)
+                        sb.Append($"ssr={r.downsampling.value}/{r.sampleCount.value}/{r.blurDownsampling.value}/{r.refineThickness.value} ");
+                }
+            }
+            var terrains = Terrain.activeTerrains;
+            for (int i = 0; terrains != null && i < terrains.Length; i++)
+                sb.Append($"terrain={terrains[i].detailObjectDensity:F2}/{terrains[i].detailObjectDistance:F0}/{terrains[i].heightmapPixelError:F0}/{terrains[i].treeBillboardDistance:F0} ");
+            sb.Append(Culling.Status).Append(' ');
+            sb.Append($"fpsCounter={FpsCounter.Visible}");
+            return sb.ToString();
+        }
+
         /// What the camera has to draw: every camera (including ones rendering into textures), renderer and
         /// shadow-caster counts by size, reflection probes, particles and the batching switches.
         public static void DumpScene()

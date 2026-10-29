@@ -77,11 +77,13 @@ namespace GigglelandPerf
             Flares = Opt(cfg, "lensFlares", "Lens Flares", 0, "On", "Off");
             DoF = Opt(cfg, "depthOfField", "Depth of Field", 0, "On", "Off");
             LodBias = Opt(cfg, "lodBias", "Level of Detail", 0, "Preset", "Lowest", "Low", "Medium", "High");
-            // Slider in 5 m steps from 10 m; the far end leaves the game's own distance alone.
+            // Slider in 5 m steps from 10 m; the far end leaves the game's own distance alone. The game's
+            // main camera draws to 50 m, so the slider stops at 45 m (0.20 had 50 and 55 m, which did nothing;
+            // the config clamps their 11 and 12 to the new top step, Game).
             var oldDraw = cfg.Bind("Advanced", "drawDistance", 0);   // 0.20 test builds: Preset, 40, 30, 20, 15 m
-            DrawDistance = SliderOpt(cfg, "drawDistanceSteps", "Draw Distance", 2, oldDraw.Value switch { 1 => 8, 2 => 6, 3 => 4, 4 => 3, _ => 12 },
-                "10 m", "15 m", "20 m", "25 m", "30 m", "35 m", "40 m", "45 m", "50 m", "55 m", "Game");
-            DrawDistance.PresetDefault = 12;
+            DrawDistance = SliderOpt(cfg, "drawDistanceSteps", "Draw Distance", 2, oldDraw.Value switch { 1 => 8, 2 => 6, 3 => 4, 4 => 3, _ => 10 },
+                "10 m", "15 m", "20 m", "25 m", "30 m", "35 m", "40 m", "45 m", "Game");
+            DrawDistance.PresetDefault = 10;
             Culling = Opt(cfg, "smallObjectCulling", "Small Object Culling", 0, "Off", "Low", "Medium", "High");
             Vegetation = Opt(cfg, "vegetation", "Vegetation Detail", 0, "Preset", "Low", "Medium", "High");
             TextureBudget = SliderOpt(cfg, "textureBudget", "Texture Memory", 0, 0, "Game", "512 MB", "1 GB", "2 GB", "4 GB");

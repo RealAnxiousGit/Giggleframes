@@ -16,3 +16,5 @@ BepInEx/
 
 # DXVK binaries (tools/get_dxvk.sh)
 dxvk/
+
+lab/settings-sweep.txt

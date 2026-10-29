@@ -59,6 +59,64 @@ namespace GigglelandPerf
             catch { return false; }
         }
 
+        // The launch helper (native/version_proxy.c): a version.dll next to the exe that adds the saved
+        // API's argument to the command line before Unity reads it, so a normal Steam launch starts on
+        // the right API without the close-and-reopen below.
+        static string HelperSource => System.IO.Path.Combine(System.IO.Path.GetDirectoryName(typeof(RenderApi).Assembly.Location) ?? "", "launcher", "version.dll");
+        static string HelperFile => System.IO.Path.Combine(GameRoot, "version.dll");
+        static string LaunchFile => System.IO.Path.Combine(BepInEx.Paths.ConfigPath, "giggleframes-launch.txt");
+        static string PendingFile => System.IO.Path.Combine(BepInEx.Paths.CachePath, "giggleframes-launch.pending");
+        static string helperState;
+
+        /// Plugin load: the process got past creating its graphics device, so clear the helper's
+        /// failed-start count, then keep the helper and its argument file up to date.
+        public static void Init()
+        {
+            helperState = Environment.GetEnvironmentVariable("GIGGLEFRAMES_LAUNCH_ARG");
+            try { System.IO.File.Delete(PendingFile); } catch { }
+            InstallHelper();
+            WriteLaunchFile();
+            Settings.RenderApi.Index.SettingChanged += (_, _) => WriteLaunchFile();
+        }
+
+        static void WriteLaunchFile()
+        {
+            // DirectX 12 with DXVK's dxgi.dll still next to the exe (Vulkan -> DirectX 12 with "Later") would
+            // load DXVK into DirectX 12. Start on DirectX 11 instead; CheckStartup's restart takes DXVK out first.
+            string arg = Args[Settings.RenderApi.I];
+            if (Settings.RenderApi.I == 1 && DxvkFiles.Any(OurFile)) arg = Args[0];
+            try { System.IO.File.WriteAllText(LaunchFile, arg); }
+            catch (Exception e) { Plugin.Log.LogWarning("could not save the launch API: " + e.Message); }
+        }
+
+        static void InstallHelper()
+        {
+            try
+            {
+                if (!System.IO.File.Exists(HelperSource)) return;
+                var ours = System.IO.File.ReadAllBytes(HelperSource);
+                if (System.IO.File.Exists(HelperFile))
+                {
+                    var there = System.IO.File.ReadAllBytes(HelperFile);
+                    if (there.AsSpan().SequenceEqual(ours)) return;
+                    // Ours (older build) or someone else's version.dll? Ours carries the argument file's name.
+                    var marker = System.Text.Encoding.Unicode.GetBytes("giggleframes-launch.txt");
+                    if (there.AsSpan().IndexOf(marker) < 0)
+                    {
+                        Plugin.Log.LogWarning("another version.dll is next to the game; keeping it, so a saved DirectX 12 still restarts the game once at startup");
+                        return;
+                    }
+                    // A loaded DLL can't be overwritten, but it can be renamed out of the way.
+                    string old = HelperFile + ".old";
+                    try { System.IO.File.Delete(old); } catch { }
+                    System.IO.File.Move(HelperFile, old);
+                }
+                System.IO.File.WriteAllBytes(HelperFile, ours);
+                Plugin.Log.LogInfo("launch helper installed next to the game (version.dll)");
+            }
+            catch (Exception e) { Plugin.Log.LogWarning("could not install the launch helper: " + e.Message); }
+        }
+
         /// First frame: if the game came up on another API than the saved one, relaunch once with
         /// the right argument. Two failed tries in a row fall back to DirectX 11.
         public static void CheckStartup()
@@ -68,12 +126,19 @@ namespace GigglelandPerf
 
             int want = Settings.RenderApi.I;
             string cmd = Environment.CommandLine;
-            Plugin.Log.LogInfo($"render API: running {SystemInfo.graphicsDeviceType}{(DxvkLoaded ? " via DXVK" : "")}, saved {Settings.RenderApi.Choices[want]}");
+            Plugin.Log.LogInfo($"render API: running {SystemInfo.graphicsDeviceType}{(DxvkLoaded ? " via DXVK" : "")}, saved {Settings.RenderApi.Choices[want]}, launch helper {helperState ?? "not used"}");
             // The restart helper's watchdog waits for this file (see RestartScript).
             try { System.IO.File.WriteAllText(StartedFile, SystemInfo.graphicsDeviceType.ToString()); } catch { }
 
             if (Current == want)
             {
+                Settings.RenderApiTries.Value = 0;
+                return;
+            }
+            if (helperState == "gave-up")
+            {
+                Plugin.Log.LogWarning($"render API: {Settings.RenderApi.Choices[want]} failed to start twice, using DirectX 11");
+                Settings.RenderApi.Index.Value = 0;
                 Settings.RenderApiTries.Value = 0;
                 return;
             }
