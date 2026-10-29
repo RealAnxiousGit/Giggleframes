@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>Giggleframes</AssemblyName>
+    <RootNamespace>GigglelandPerf</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <OutputPath>artifacts/build/</OutputPath>
+    <NoWarn>CS0649;CS0169;CS0414;MSB3277</NoWarn>
+    <GameDir Condition="'$(GameDir)' == ''">F:\SteamLibrary\steamapps\common\Giggleland</GameDir>
+    <Core>$(GameDir)\BepInEx\core</Core>
+    <Interop>$(GameDir)\BepInEx\interop</Interop>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="src\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="$(Core)\BepInEx.Core.dll" Private="false" />
+    <Reference Include="$(Core)\BepInEx.Unity.IL2CPP.dll" Private="false" />
+    <Reference Include="$(Core)\0Harmony.dll" Private="false" />
+    <Reference Include="$(Core)\Il2CppInterop.Runtime.dll" Private="false" />
+    <Reference Include="$(Core)\Il2CppInterop.Common.dll" Private="false" />
+    <Reference Include="$(Interop)\Il2Cppmscorlib.dll" Private="false" />
+    <Reference Include="$(Interop)\Il2CppSystem.dll" Private="false" />
+    <Reference Include="$(Interop)\Assembly-CSharp.dll" Private="false" />
+    <Reference Include="$(Interop)\UnityEngine.dll" Private="false" />
+    <Reference Include="$(Interop)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="$(Interop)\UnityEngine.UI.dll" Private="false" />
+    <Reference Include="$(Interop)\UnityEngine.UIModule.dll" Private="false" />
+    <Reference Include="$(Interop)\UnityEngine.TerrainModule.dll" Private="false" />
+    <Reference Include="$(Interop)\UnityEngine.AudioModule.dll" Private="false" />
+    <Reference Include="$(Interop)\UnityEngine.IMGUIModule.dll" Private="false" />
+    <Reference Include="$(Interop)\UnityEngine.ScreenCaptureModule.dll" Private="false" />
+    <Reference Include="$(Interop)\UnityEngine.ParticleSystemModule.dll" Private="false" />
+    <Reference Include="$(Interop)\Unity.TextMeshPro.dll" Private="false" />
+    <Reference Include="$(Interop)\Unity.RenderPipelines.Core.Runtime.dll" Private="false" />
+    <Reference Include="$(Interop)\Unity.RenderPipelines.Universal.Runtime.dll" Private="false" />
+    <Reference Include="$(Interop)\ScreenSpaceReflections.dll" Private="false" />
+  </ItemGroup>
+
+  <Target Name="CopyToPlugins" AfterTargets="Build" Condition="'$(CopyToGame)' == 'true'">
+    <MakeDir Directories="$(GameDir)\BepInEx\plugins\Giggleframes" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GameDir)\BepInEx\plugins\Giggleframes" />
+  </Target>
+</Project>

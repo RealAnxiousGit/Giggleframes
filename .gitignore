@@ -1,0 +1,15 @@
+# Build output
+artifacts/
+obj/
+bin/
+*.zip
+
+# Local only: downloads, save/registry backups, lab runs
+.downloads/
+backups/
+lab/cfg.before
+lab/*.png
+
+# Never commit game files or decompiled code
+BepInEx/
+*-decomp/
