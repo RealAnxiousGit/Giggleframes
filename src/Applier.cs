@@ -92,7 +92,7 @@ namespace GigglelandPerf
             Add(() => s.Overridden, () => Urp.upscalingFilter, v => Urp.upscalingFilter = v,
                 b => s.I switch { 1 => UpscalingFilterSelection.Linear, 2 => UpscalingFilterSelection.FSR, 3 => UpscalingFilterSelection.Point, _ => b });
             Add(() => s.I == 2, () => Urp.fsrOverrideSharpness, v => Urp.fsrOverrideSharpness = v, _ => true);
-            Add(() => s.I == 2, () => Urp.fsrSharpness, v => Urp.fsrSharpness = v, _ => Settings.FsrSharpness.Value.Value);
+            Add(() => s.I == 2, () => Urp.fsrSharpness, v => Urp.fsrSharpness = v, _ => Settings.FsrSharpness.I / 10f);
 
             var sh = Settings.Shadows; // Preset, Off, Low, Medium, High, Ultra
             Add(() => sh.Overridden, () => Urp.m_MainLightShadowsSupported, v => Urp.m_MainLightShadowsSupported = v, b => sh.I != 1 && b);

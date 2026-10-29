@@ -12,7 +12,7 @@ namespace GigglelandPerf
     public class Plugin : BasePlugin
     {
         public const string Guid = "gigglelandperf";
-        public const string Version = "0.10.0"; // Pre-release 0.10
+        public const string Version = "0.20.0"; // Pre-Release 0.20
 
         internal static ManualLogSource Log;
         internal static Plugin Instance;
@@ -32,6 +32,7 @@ namespace GigglelandPerf
                 catch (Exception e) { Log.LogError($"patch {t.Name} failed: {e.Message}"); }
             }
 
+            Culling.Init();
             AddComponent<Runner>();
             SceneManager.sceneLoaded += (Action<Scene, LoadSceneMode>)OnSceneLoaded;
             Log.LogInfo($"Giggleframes {Version} loaded");
@@ -41,6 +42,7 @@ namespace GigglelandPerf
         {
             Log.LogInfo($"scene loaded: {scene.name} ({mode})");
             Applier.RescanVolumes();
+            Culling.Rescan(5f);
             Runner.ApplyInFrames(3);
             if (Settings.DumpOnLoad.Value) Runner.DumpInFrames(30);
         }
@@ -74,33 +76,12 @@ namespace GigglelandPerf
                 Safe(Applier.ApplyAll, "keep");
             }
 
-            if (Settings.ShowFps.Value)
-            {
-                fpsFrames++;
-                fpsTime += Time.unscaledDeltaTime;
-                if (fpsTime >= 0.5f)
-                {
-                    fpsText = $"{fpsFrames / fpsTime:0} FPS  {1000f * fpsTime / fpsFrames:0.0} ms";
-                    fpsFrames = 0;
-                    fpsTime = 0f;
-                }
-            }
+            Safe(Culling.Tick, "culling");
+            Safe(FpsCounter.Tick, "fps");
         }
-
-        int fpsFrames;
-        float fpsTime;
-        string fpsText = "";
-        GUIStyle fpsStyle;
 
         // Only GUI.Label: GUILayout helpers are stripped from IL2CPP builds like this one.
-        void OnGUI()
-        {
-            if (!Settings.ShowFps.Value || fpsText.Length == 0) return;
-            fpsStyle ??= new GUIStyle { fontSize = 18, normal = { textColor = Color.white } };
-            var shadow = new GUIStyle(fpsStyle) { normal = { textColor = Color.black } };
-            GUI.Label(new Rect(11, 9, 300, 30), fpsText, shadow);
-            GUI.Label(new Rect(10, 8, 300, 30), fpsText, fpsStyle);
-        }
+        void OnGUI() => FpsCounter.OnGUI();
 
         static void Safe(Action a, string what)
         {

@@ -13,3 +13,6 @@ lab/*.png
 # Never commit game files or decompiled code
 BepInEx/
 *-decomp/
+
+# DXVK binaries (tools/get_dxvk.sh)
+dxvk/

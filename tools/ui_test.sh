@@ -14,8 +14,11 @@ step 'select advanced\nsubmit\n'; step 'back\n'; step 'visible\n' 2
 step 'select advanced\nsubmit\n'; step 'select renderApi\nadjust 1\n' 4; step 'popup\nshot t4-restart-popup\n' 3
 step 'popup later\n' 3; step 'visible\n' 2
 step 'select renderApi\nadjust -1\n' 4; step 'popup\n' 2
-step 'select presetLow\nsubmit\n'; step 'select presetGame\nsubmit\n'; step 'select presetLow\nsubmit\n'
-step 'back\n'; step 'select reset\nsubmit\n' 5; step 'popup\nshot t5-reset\n' 3; step 'popup later\n' 3
-step 'back\n' 5; step 'visible\nshot t6-categories\n' 3
-step 'settingsclick 4\n' 5; step 'shot t7-main\n' 3
+# Drop-downs: Submit opens, Navigate moves, Submit picks, Back closes without leaving the page.
+step 'select graphicsPreset\nsubmit\n'; step 'nav 1\nshot t5-preset-list\nsubmit\n'; step 'visible\n' 2
+step 'select shadowQuality\nsubmit\n'; step 'back\n'; step 'visible\n' 2
+step 'rowclick drawDistance\n'; step 'itemclick 3\n'; step 'select graphicsPreset\nsubmit\n'; step 'itemclick 3\n'
+step 'back\n'; step 'select reset\nsubmit\n' 5; step 'popup\nshot t6-reset\n' 3; step 'popup later\n' 3
+step 'back\n' 5; step 'visible\nshot t7-categories\n' 3
+step 'settingsclick 4\n' 5; step 'shot t8-main\n' 3
 echo "ALIVE: full walk done"

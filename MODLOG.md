@@ -73,3 +73,34 @@ Verified in game with the dev command file + screenshots:
 ## Route
 BepInEx 6 IL2CPP plugin + Harmony. Inject an "Advanced" action row into the Graphics page that opens a cloned
 `SettingsListPanel` with the mod's own rows; settings stored in a BepInEx config file and re-applied on scene load.
+
+## 0.20 work (2026-10-29)
+### Busy-view stutter (Rory's Rally, DX12, user settings, `tools/busy_lab.sh` + `spin` bench)
+- Spin: facing a wall ~800 batches / 0.4M tris / 33 fps; facing the big room 7.5-8.6k batches / 3.8M tris / 23 fps.
+- Only two cameras render per frame (MainCamera far=50, ObjectHoldCam), counted with `cams`. 16.9k mesh
+  renderers, 14.3k shadow casters, 4k LODGroups, SRP batcher on, graphics jobs on (boot.config native).
+- The game rewrites MainCamera every frame (far, mask...): overrides must go in beginCameraRendering.
+- MainCamera cullingMask=0 -> 57 fps: drawing the scene is ~26 ms of the busy frame.
+- Render-time far 15 m: 2.9k batches, +19%. Far 25 m: nothing. Render scale 0.3/0.25: +20/25%.
+- Small-object cull (size < k * distance, forceRenderingOff): k=0.05 -> -26% batches, ~+5%.
+- No real effect: shadows off, local shadows off, AO off, LOD bias 0.5, maximumLODLevel, animators off,
+  ScalableBufferManager dynamic res. FrameTimingManager is disabled in this build (no CPU/GPU split).
+- Thermal noise on the 15 W chip is +-2 fps; compare within one run.
+### Exit-to-menu crash
+- Dumps in %LOCALAPPDATA%\CrashDumps; symbols from https://symbolserver.unity3d.com (UnityPlayer_Win64_player_il2cpp_x64.pdb,
+  .pdb not .pd_), resolved with dbghelp via ctypes. Both 10:36 and 12:10 crashes: access violation on the render
+  thread in TexturesD3D12::FrameCleanup / TransferNativeTexture (DX12 texture lifetime), after "Unloading 7020
+  unused Assets" on the way back to MainMenu. Not out-of-memory (no allocation failure logged).
+- Exit-to-menu stress (`tools/menu_cycle.sh dx12 5`): no crash in 5 cycles. Left as a known Unity DX12 issue.
+### Results / decisions
+- Draw Distance (render-time far cap) + Small Object Culling (MeshRenderers on layer 0, 0 < size <= 4 m, hidden when
+  size < k * distance, beyond 3 m; 1500 per frame). Busy view DX12: Game 22.5, Low-Spec 29, Very Low 31 fps.
+- Advanced rows: Options rows become drop-downs (Dropdown.cs; HandleNavInput/NavigateSelection/SubmitSelected/
+  AdjustSelected/RepeatAdjust/DoBack/UpdateHoverFromCursor/CycleOption prefixes, none UnityEvent targets).
+  Numeric rows are game sliders with wholeNumbers and our value text via SetValueText.
+- Vulkan = DXVK. Gotcha 11: DXVK 3.x needs Vulkan 1.4, 2.7 needs VK_KHR_maintenance5; the user's Intel driver
+  101.4953 has neither -> ship 2.6.2. Gotcha 12: when DXVK can't create a device Unity exits BEFORE the BepInEx
+  chainloader, so no plugin code can recover; the restart helper (BepInEx/cache/giggleframes-restart.ps1) watches
+  for BepInEx/cache/giggleframes-started.txt and rolls back to DX11 (verified with DXVK 3.1.1 on purpose).
+- API lab (lab/api-0.20.txt, Low-Spec, busy/away): DX12 27.4/34, VK 22/34, DX11 20.3/33. relaxedBarriers: no gain.
+- Released as Pre-Release 0.20 (tools/package.sh, zip includes dxvk/).

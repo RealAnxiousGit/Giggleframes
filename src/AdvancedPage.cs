@@ -86,7 +86,7 @@ namespace GigglelandPerf
                 adv.onHidden = new UnityEvent();
                 adv.onBack = new UnityEvent();
 
-                RectTransform tOpt = null, tSlider = null, tToggle = null, tAction = null, backRow = null;
+                RectTransform tOpt = null, tSlider = null, backRow = null;
                 var old = adv.rowDefs;
                 for (int i = 0; i < old.Count; i++)
                 {
@@ -95,12 +95,10 @@ namespace GigglelandPerf
                     {
                         case "quality": tOpt = d.rowObject; break;
                         case "renderScale": tSlider = d.rowObject; break;
-                        case "hdr": tToggle = d.rowObject; break;
-                        case "reset": tAction = d.rowObject; break;
                         case "Back": backRow = d.rowObject; break;
                     }
                 }
-                if (tOpt == null || tSlider == null || tToggle == null || tAction == null || backRow == null)
+                if (tOpt == null || tSlider == null || backRow == null)
                 {
                     Plugin.Log.LogWarning("Graphics page layout changed; Advanced page not built");
                     UnityEngine.Object.Destroy(go);
@@ -110,36 +108,30 @@ namespace GigglelandPerf
                 var content = tOpt.parent;
                 var defs = new Il2CppSystem.Collections.Generic.List<RowDef>();
 
+                // Numeric settings are the game's sliders (whole steps, our own value text); every other
+                // row is a drop-down (Dropdown.cs): an Options row whose arrows become a caret.
                 foreach (var o in Settings.All)
                 {
                     GS s;
                     RectTransform row;
-                    if (o.Choices != null)
+                    if (o.Slider)
+                    {
+                        s = NewSetting(o.Key, o.Label, RowType.Slider);
+                        s.minValue = o.Min;
+                        s.maxValue = o.Max;
+                        s.wholeNumbers = true;
+                        s.floatValue = o.I;
+                        row = CloneRow(tSlider, content, "Row_" + o.Key);
+                    }
+                    else
                     {
                         s = NewSetting(o.Key, o.Label, RowType.Options);
                         s.options = new Il2CppStringArray(o.Choices);
                         s.optionIndex = o.I;
                         row = CloneRow(tOpt, content, "Row_" + o.Key);
                     }
-                    else
-                    {
-                        s = NewSetting(o.Key, o.Label, RowType.Slider);
-                        s.minValue = o.Min;
-                        s.maxValue = o.Max;
-                        s.floatValue = o.Value.Value;
-                        s.numberFormat = "0.00";
-                        row = CloneRow(tSlider, content, "Row_" + o.Key);
-                    }
                     defs.Add(NewDef(row, s));
                 }
-
-                var fps = NewSetting("showFps", "Show FPS Counter", RowType.Toggle);
-                fps.boolValue = Settings.ShowFps.Value;
-                defs.Add(NewDef(CloneRow(tToggle, content, "Row_showFps"), fps));
-
-                defs.Add(ActionRow(tAction, content, "presetLow", "Apply Low-Spec Preset", () => Preset("Low-Spec")));
-                defs.Add(ActionRow(tAction, content, "presetBalanced", "Apply Balanced Preset", () => Preset("Balanced")));
-                defs.Add(ActionRow(tAction, content, "presetGame", "Reset Advanced to Game Defaults", () => Preset("Game")));
 
                 // Back (row, Esc, gamepad) all run the panel's own GoBack, which hides the page.
                 // Without a settingsPanel it doesn't reopen the category list; Tick() reopens Graphics.
@@ -169,13 +161,6 @@ namespace GigglelandPerf
             {
                 UnityEngine.Object.Destroy(holder);
             }
-        }
-
-        static RowDef ActionRow(RectTransform template, Transform content, string key, string label, Action onClick)
-        {
-            var s = NewSetting(key, label, RowType.Action);
-            s.onInvoke = (Il2CppSystem.Action)onClick;
-            return NewDef(CloneRow(template, content, "Row_" + key), s);
         }
 
         static GS NewSetting(string key, string label, RowType type)
@@ -248,6 +233,7 @@ namespace GigglelandPerf
         /// Polling instead of hooking GoBack, which UnityEvents call (see Patches.cs).
         public static void Tick()
         {
+            Dropdown.Tick();
             foreach (var adv in advancedOf.Values)
             {
                 if (adv == null) continue;
@@ -286,9 +272,15 @@ namespace GigglelandPerf
         static void OnChanged(GS s)
         {
             if (suppress || s == null) return;
-            if (s.key == "showFps") { Settings.ShowFps.Value = s.boolValue; return; }
             var o = Settings.Find(s.key);
             if (o == null) return;
+            if (o == Settings.GraphicsPreset)
+            {
+                // "Custom" is only a label for hand-made settings; picking it changes nothing.
+                if (s.optionIndex == 0) { o.Index.Value = 0; return; }
+                Preset(Settings.Presets[s.optionIndex]);
+                return;
+            }
             if (o == Settings.RenderApi)
             {
                 o.Index.Value = s.optionIndex;
@@ -296,18 +288,30 @@ namespace GigglelandPerf
                 if (o.I != RenderApi.Current) RenderApi.AskRestart(VisibleAdvanced());
                 return;
             }
-            if (o.Choices != null) o.Index.Value = s.optionIndex;
-            else o.Value.Value = s.floatValue;
-            Settings.AppliedPreset.Value = "Custom";
+            int v = o.Slider ? Mathf.Clamp(Mathf.RoundToInt(s.floatValue), o.Min, o.Max) : s.optionIndex;
+            if (o.Slider) SetSliderText(o);
+            if (o.I == v) return;
+            o.Index.Value = v;
+            if (o.Slider) SetSliderText(o);
+            if (!o.NotInPresets && Settings.GraphicsPreset.I != 0)
+            {
+                Settings.GraphicsPreset.Index.Value = 0;
+                RefreshAll();
+            }
             Applier.ApplyAll();
         }
 
-        static void Preset(string name)
+        public static void Preset(string name)
         {
             Settings.ApplyPreset(name);
             Applier.ApplyAll();
-            foreach (var adv in advancedOf.Values) if (adv != null) Refresh(adv);
+            RefreshAll();
             Plugin.Log.LogInfo($"preset applied: {name}");
+        }
+
+        static void RefreshAll()
+        {
+            foreach (var adv in advancedOf.Values) if (adv != null) Refresh(adv);
         }
 
         static void Refresh(SettingsListPanel adv)
@@ -317,12 +321,23 @@ namespace GigglelandPerf
             {
                 foreach (var o in Settings.All)
                 {
-                    if (o.Choices != null) adv.SetOptionIndex(o.Key, o.I);
-                    else adv.SetFloat(o.Key, o.Value.Value);
+                    if (!o.Slider) { adv.SetOptionIndex(o.Key, o.I); continue; }
+                    adv.SetFloat(o.Key, o.I);
+                    adv.SetValueText(o.Key, o.Text);
                 }
-                adv.SetBool("showFps", Settings.ShowFps.Value);
             }
             finally { suppress = false; }
+        }
+
+        /// The game prints a slider's number; ours show what the step means ("20 m", "Game", "1 GB").
+        static void SetSliderText(Option o)
+        {
+            foreach (var adv in advancedOf.Values) if (adv != null) adv.SetValueText(o.Key, o.Text);
+        }
+
+        public static void RefreshTexts(SettingsListPanel adv)
+        {
+            foreach (var o in Settings.All) if (o.Slider) adv.SetValueText(o.Key, o.Text);
         }
     }
 }

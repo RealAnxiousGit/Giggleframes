@@ -35,6 +35,8 @@
     <Reference Include="$(Interop)\UnityEngine.UIModule.dll" Private="false" />
     <Reference Include="$(Interop)\UnityEngine.TerrainModule.dll" Private="false" />
     <Reference Include="$(Interop)\UnityEngine.AudioModule.dll" Private="false" />
+    <Reference Include="$(Interop)\UnityEngine.AnimationModule.dll" Private="false" />
+    <Reference Include="$(Interop)\UnityEngine.TextRenderingModule.dll" Private="false" />
     <Reference Include="$(Interop)\UnityEngine.IMGUIModule.dll" Private="false" />
     <Reference Include="$(Interop)\UnityEngine.ScreenCaptureModule.dll" Private="false" />
     <Reference Include="$(Interop)\UnityEngine.ParticleSystemModule.dll" Private="false" />
@@ -47,5 +49,10 @@
   <Target Name="CopyToPlugins" AfterTargets="Build" Condition="'$(CopyToGame)' == 'true'">
     <MakeDir Directories="$(GameDir)\BepInEx\plugins\Giggleframes" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GameDir)\BepInEx\plugins\Giggleframes" />
+    <!-- DXVK for the Vulkan option, fetched by tools/get_dxvk.sh (not in git). -->
+    <ItemGroup>
+      <DxvkFiles Include="dxvk\*.dll;dxvk\LICENSE;res\dxvk.conf" />
+    </ItemGroup>
+    <Copy SourceFiles="@(DxvkFiles)" DestinationFolder="$(GameDir)\BepInEx\plugins\Giggleframes\dxvk" SkipUnchangedFiles="true" />
   </Target>
 </Project>

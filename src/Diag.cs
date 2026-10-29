@@ -177,6 +177,84 @@ namespace GigglelandPerf
             Plugin.Log.LogInfo(sb.ToString());
         }
 
+        /// What the camera has to draw: every camera (including ones rendering into textures), renderer and
+        /// shadow-caster counts by size, reflection probes, particles and the batching switches.
+        public static void DumpScene()
+        {
+            var sb = new StringBuilder("[scene]\n");
+            var urp = GraphicsSettings.currentRenderPipeline?.TryCast<UniversalRenderPipelineAsset>();
+            sb.AppendLine($"  srpBatcher={urp?.useSRPBatcher} dynBatch={urp?.supportsDynamicBatching} " +
+                          $"streamMips={QualitySettings.streamingMipmapsActive} budget={QualitySettings.streamingMipmapsMemoryBudget} " +
+                          $"maxReduction={QualitySettings.streamingMipmapsMaxLevelReduction} maxFileIO={QualitySettings.streamingMipmapsMaxFileIORequests} " +
+                          $"addAllCams={QualitySettings.streamingMipmapsAddAllCameras} maxLod={QualitySettings.maximumLODLevel}");
+            foreach (var o in Resources.FindObjectsOfTypeAll(Il2CppType.Of<Camera>()))
+            {
+                var cam = o.TryCast<Camera>();
+                if (cam == null || !cam.gameObject.scene.IsValid()) continue;
+                var data = cam.GetComponent<UniversalAdditionalCameraData>();
+                sb.AppendLine($"  camera {Path(cam.transform)} on={cam.isActiveAndEnabled} target={(cam.targetTexture ? cam.targetTexture.name + " " + cam.targetTexture.width + "x" + cam.targetTexture.height : "screen")} " +
+                              $"far={cam.farClipPlane} occl={cam.useOcclusionCulling} mask=0x{cam.cullingMask:x} type={(data ? data.renderType.ToString() : "-")} " +
+                              $"shadows={(data ? data.renderShadows : false)} depthTex={(data ? data.requiresDepthTexture : false)} layerCull={cam.layerCullSpherical}");
+            }
+            int mr = 0, smr = 0, cast = 0, smallCast = 0, offCast = 0, noLod = 0;
+            var layers = new int[32];
+            foreach (var r in Object.FindObjectsOfType<Renderer>())
+            {
+                if (!r.enabled || !r.gameObject.activeInHierarchy) continue;
+                if (r.TryCast<MeshRenderer>() != null) mr++;
+                else if (r.TryCast<SkinnedMeshRenderer>() != null) smr++;
+                else continue;
+                layers[r.gameObject.layer]++;
+                if (r.shadowCastingMode == ShadowCastingMode.Off) { offCast++; continue; }
+                cast++;
+                if (r.bounds.size.magnitude < 1f) smallCast++;
+            }
+            foreach (var r in Object.FindObjectsOfType<MeshRenderer>()) if (r.GetComponentInParent<LODGroup>() == null) noLod++;
+            sb.AppendLine($"  renderers: mesh={mr} skinned={smr} shadowCasters={cast} (under 1 m: {smallCast}) noShadow={offCast} " +
+                          $"withoutLOD={noLod} lodGroups={Object.FindObjectsOfType<LODGroup>().Length}");
+            var ls = new StringBuilder();
+            for (int i = 0; i < 32; i++) if (layers[i] > 0) ls.Append($"{LayerMask.LayerToName(i)}({i})={layers[i]} ");
+            sb.AppendLine("  layers: " + ls);
+            foreach (var p in Object.FindObjectsOfType<ReflectionProbe>())
+                sb.AppendLine($"  probe {Path(p.transform)} mode={p.mode} refresh={p.refreshMode} slicing={p.timeSlicingMode} res={p.resolution}");
+            int ps = 0, psPlaying = 0;
+            foreach (var p in Object.FindObjectsOfType<ParticleSystem>()) { ps++; if (p.isPlaying) psPlaying++; }
+            sb.AppendLine($"  particles={ps} playing={psPlaying}");
+            Plugin.Log.LogInfo(sb.ToString());
+        }
+
+        // ---------- camera render counter ----------
+
+        static System.Collections.Generic.Dictionary<string, int> camRenders;
+        static int camFrames, camStartFrame;
+        static bool camHooked;
+
+        /// Counts which cameras render over the next n frames (scripts can render disabled cameras by hand).
+        public static void CountCameras(int n)
+        {
+            camRenders = new System.Collections.Generic.Dictionary<string, int>();
+            camFrames = n;
+            camStartFrame = Time.frameCount;
+            if (camHooked) return;
+            camHooked = true;
+            RenderPipelineManager.add_beginCameraRendering((System.Action<ScriptableRenderContext, Camera>)((_, cam) =>
+            {
+                if (camRenders == null) return;
+                if (Time.frameCount - camStartFrame >= camFrames)
+                {
+                    var sb = new StringBuilder($"[cameras] renders over {camFrames} frames:\n");
+                    var l = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, int>>(camRenders);
+                    l.Sort((a, b) => b.Value.CompareTo(a.Value));
+                    foreach (var kv in l) sb.AppendLine($"  {kv.Value,5}  {kv.Key}");
+                    camRenders = null;
+                    Plugin.Log.LogInfo(sb.ToString());
+                    return;
+                }
+                string k = cam ? Path(cam.transform) : "?";
+                camRenders[k] = camRenders.TryGetValue(k, out var c) ? c + 1 : 1;
+            }));
+        }
+
         static void Listeners(StringBuilder sb, string name, UnityEngine.Events.UnityEventBase e)
         {
             for (int i = 0; e != null && i < e.GetPersistentEventCount(); i++)
