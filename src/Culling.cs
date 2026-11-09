@@ -36,7 +36,11 @@ namespace GigglelandPerf
                 if (cap > 0f && cam != null && cam.cameraType == CameraType.Game && cam.targetTexture == null && cam == Camera.main
                     && cam.farClipPlane > cap)
                     cam.farClipPlane = cap;
-                if (cam != null && cam == Camera.main) lastFar = cam.farClipPlane;
+                if (cam != null && cam == Camera.main)
+                {
+                    lastFar = cam.farClipPlane;
+                    DistanceFog.BeforeMainCamera(cam, cap);
+                }
             }
             catch (Exception e) { Plugin.Log.LogWarning("draw distance: " + e.Message); }
         }

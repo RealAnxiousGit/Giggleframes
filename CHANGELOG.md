@@ -1,5 +1,21 @@
 # Changelog
 
+## Pre-Release 0.20.2 (plugin 0.20.2)
+
+Updated for Giggleland v1.1.0.
+
+### Compatibility
+- Tested on game v1.1.0 (Steam build 26527345). The mod loads with no errors on DirectX 11 and Vulkan (DXVK).
+
+### New: Distance Fog
+- A new slider under Draw Distance: *Off*, *Sync to Draw Distance* (the default), or a fixed 10-45 m.
+- *Sync to Draw Distance* places the fog at the Draw Distance edge and follows that slider. It adds no fog while Draw Distance is on *Game*.
+- A fixed distance sets where the fog becomes fully thick. *Off* gives the level its own fog back.
+- The fog uses the level's own fog colour, so it can be hard to see in very dark areas.
+
+### Known issue: DirectX 12 on Intel graphics
+- On game v1.1.0, DirectX 12 crashes with a GPU hang (`887a0006`) shortly after loading the `Outside` level on the Intel GPU it was tested on, including on driver 32.0.101.7092 and with the mod removed. If it happens to you, switch Render API to DirectX 11 on the Advanced page.
+
 ## Pre-Release 0.20.1 (plugin 0.20.1)
 
 ### Drop-down menus work with the mouse

@@ -254,6 +254,7 @@ namespace GigglelandPerf
             for (int i = 0; terrains != null && i < terrains.Length; i++)
                 sb.Append($"terrain={terrains[i].detailObjectDensity:F2}/{terrains[i].detailObjectDistance:F0}/{terrains[i].heightmapPixelError:F0}/{terrains[i].treeBillboardDistance:F0} ");
             sb.Append(Culling.Status).Append(' ');
+            sb.Append($"{DistanceFog.Status} ");
             sb.Append($"fpsCounter={FpsCounter.Visible}");
             return sb.ToString();
         }

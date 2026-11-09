@@ -332,12 +332,32 @@ namespace GigglelandPerf
         /// The game prints a slider's number; ours show what the step means ("20 m", "Game", "1 GB").
         static void SetSliderText(Option o)
         {
-            foreach (var adv in advancedOf.Values) if (adv != null) adv.SetValueText(o.Key, o.Text);
+            foreach (var adv in advancedOf.Values)
+                if (adv != null) { adv.SetValueText(o.Key, o.Text); FitLongText(adv, o); }
+        }
+
+        // The value box is centred on its column and grows with its text; the page clips it on the right.
+        const float LongTextScale = 0.7f, LongTextShiftX = -41f;
+        static readonly Dictionary<int, (float size, Vector2 pos)> fitOriginal = new();
+
+        /// "Sync to Draw Distance" is wider than the room right of a slider, so that text is drawn smaller and further left.
+        static void FitLongText(SettingsListPanel adv, Option o)
+        {
+            if (o != Settings.DistanceFog) return;
+            var t = adv.FindRow(o.Key)?.valueText;
+            if (t == null) return;
+            var rt = t.rectTransform;
+            int id = t.GetInstanceID();
+            if (!fitOriginal.TryGetValue(id, out var orig)) fitOriginal[id] = orig = (t.fontSize, rt.anchoredPosition);
+            bool isLong = o.I == 1;
+            t.fontSize = isLong ? orig.size * LongTextScale : orig.size;
+            rt.anchoredPosition = isLong ? orig.pos + new Vector2(LongTextShiftX, 0f) : orig.pos;
         }
 
         public static void RefreshTexts(SettingsListPanel adv)
         {
-            foreach (var o in Settings.All) if (o.Slider) adv.SetValueText(o.Key, o.Text);
+            foreach (var o in Settings.All)
+                if (o.Slider) { adv.SetValueText(o.Key, o.Text); FitLongText(adv, o); }
         }
     }
 }

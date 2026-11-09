@@ -12,7 +12,7 @@ namespace GigglelandPerf
     public class Plugin : BasePlugin
     {
         public const string Guid = "gigglelandperf";
-        public const string Version = "0.20.1"; // Pre-Release 0.20.1
+        public const string Version = "0.20.2"; // Pre-Release 0.20.2
 
         internal static ManualLogSource Log;
         internal static Plugin Instance;

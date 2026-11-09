@@ -35,7 +35,7 @@ namespace GigglelandPerf
         static readonly Dictionary<string, Option> byKey = new();
 
         public static Option GraphicsPreset, RenderApi, Upscaling, FsrSharpness, VolFog, VolLights, Shadows, Cascades, LocalShadows,
-            Lighting, AO, SSR, Post, Bloom, Flares, DoF, LodBias, DrawDistance, Culling, Vegetation, TextureBudget, FpsCounter;
+            Lighting, AO, SSR, Post, Bloom, Flares, DoF, LodBias, DrawDistance, DistanceFog, Culling, Vegetation, TextureBudget, FpsCounter;
 
         static readonly string[] Levels = { "Preset", "Off", "Low", "Medium", "High" };
 
@@ -84,6 +84,9 @@ namespace GigglelandPerf
             DrawDistance = SliderOpt(cfg, "drawDistanceSteps", "Draw Distance", 2, oldDraw.Value switch { 1 => 8, 2 => 6, 3 => 4, 4 => 3, _ => 10 },
                 "10 m", "15 m", "20 m", "25 m", "30 m", "35 m", "40 m", "45 m", "Game");
             DrawDistance.PresetDefault = 10;
+            DistanceFog = SliderOpt(cfg, "distanceFog", "Distance Fog", 0, 1,
+                "Off", "Sync to Draw Distance", "10 m", "15 m", "20 m", "25 m", "30 m", "35 m", "40 m", "45 m");
+            DistanceFog.PresetDefault = 1;
             Culling = Opt(cfg, "smallObjectCulling", "Small Object Culling", 0, "Off", "Low", "Medium", "High");
             Vegetation = Opt(cfg, "vegetation", "Vegetation Detail", 0, "Preset", "Low", "Medium", "High");
             TextureBudget = SliderOpt(cfg, "textureBudget", "Texture Memory", 0, 0, "Game", "512 MB", "1 GB", "2 GB", "4 GB");

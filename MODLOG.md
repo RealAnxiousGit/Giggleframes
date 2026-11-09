@@ -1,7 +1,7 @@
 # MODLOG: Giggleland performance mod
 
 ## Start here (next version)
-Current release: **Pre-Release 0.20.1** (plugin 0.20.1, tag `v0.20.1-pre`), repo https://github.com/RealAnxiousGit/Giggleframes,
+Current release: **Pre-Release 0.20.2** (plugin 0.20.2, tag `v0.20.2-pre`), repo https://github.com/RealAnxiousGit/Giggleframes,
 local project `C:\Users\NickBin\Documents\Claude\Other Mods\Giggleland Performance Mod` (branch main). Plan from the user:
 testers try it, bugs get fixed, then **V1.0 stable**. Read CHANGELOG.md (what shipped), this file (how and why,
 gotchas), README.md (user-facing docs, project layout, tools).
@@ -24,7 +24,7 @@ User's game state to keep: DirectX 12, Graphics Preset Custom, FPS counter on, D
 game root, launch helper `version.dll` in the game root (installed by the mod).
 
 ## Facts
-- Install: `F:\SteamLibrary\steamapps\common\Giggleland`, Steam app 3370490, buildid 26276541.
+- Install: `F:\SteamLibrary\steamapps\common\Giggleland`, Steam app 3370490, buildid 26527345 (game v1.1.0; 0.20.1 was built on 26276541).
 - Unity 2022.3.62f2 (7670c08855a9), IL2CPP, URP, D3D11. Company/product: `Hooked` / `Giggleland`.
 - Single-player, no anti-cheat. Steamworks.NET only.
 - Saves: `%USERPROFILE%\AppData\LocalLow\Hooked\Giggleland\Saves`. Prefs in `HKCU\Software\Hooked\Giggleland`.
@@ -122,6 +122,14 @@ BepInEx 6 IL2CPP plugin + Harmony. Inject an "Advanced" action row into the Grap
   thread in TexturesD3D12::FrameCleanup / TransferNativeTexture (DX12 texture lifetime), after "Unloading 7020
   unused Assets" on the way back to MainMenu. Not out-of-memory (no allocation failure logged).
 - Exit-to-menu stress (`tools/menu_cycle.sh dx12 5`): no crash in 5 cycles. Left as a known Unity DX12 issue.
+### 0.20.2: game v1.1.0 and Distance Fog (2026-11-08)
+- Game v1.1.0: same Unity (2022.3.62f2), GameAssembly rebuilt, BepInEx regenerates interop on first launch. 0.20.1 loaded with no errors; no hook changes needed.
+- Distance Fog (src/DistanceFog.cs, row `distanceFog`, default Sync): Unity linear fog, set just before the main camera renders, using the level's fog colour. Each level's RenderSettings fog is remembered and restored when the option has nothing to do. Linear, Exp and Exp2 all render in this build. `Outside` has its own Exponential fog with a dark colour, so the fog is hard to see there.
+- Value text box: centred on its column, grows with its text, and the page clips it on the right. "Sync to Draw Distance" is drawn at 70% size and 41 px left (AdvancedPage.FitLongText).
+- DX12 known issue on Intel (ID 0xa7ac, drivers 31.0.101.4953 and 32.0.101.7092): GPU hang 887a0006 shortly after loading `Outside`, also with BepInEx and version.dll removed. Survives with all URP renderer features off and with Colorblind alone; crashes with any tested group of features on. Native render pass, depth priming, copy depth mode and SRP batcher don't help. No fix found; the option stays because other PCs may run it. Unity `-force-d3d12-debug` works here and writes DRED breadcrumbs to Player.log (only ordinary draws, no culprit). DX12 startup also freezes now and then, once seen unmodded.
+- Test harness gotchas: `tools/start_game.sh` only edits the cfg, but the launch helper reads `giggleframes-launch.txt`, so switching API with it also needs that file written and the DXVK files copied or removed. Bench with the game in front. `Outside` numbers are not comparable with the Rory's Rally ones above.
+- API numbers (`Outside`, 32.0.101.7092, the user's settings, busy view): DX11 43-44 fps, DXVK 39-41 fps. Heavier presets are close and DXVK uses about 300 MB less RAM.
+
 ### Results / decisions
 - Draw Distance (render-time far cap) + Small Object Culling (MeshRenderers on layer 0, 0 < size <= 4 m, hidden when
   size < k * distance, beyond 3 m; 1500 per frame). Busy view DX12: Game 22.5, Low-Spec 29, Very Low 31 fps.

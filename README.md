@@ -2,7 +2,7 @@
 
 A performance mod for **Giggleland** (Steam). It adds an **Advanced** page to the game's Graphics settings with the heavy rendering options the game doesn't expose: volumetric fog, volumetric lighting, shadow quality, ambient occlusion, reflections, post-processing and more. It also adds a DirectX 11 / DirectX 12 / Vulkan (DXVK) switch, options that keep busy rooms playable, and presets tuned for integrated graphics.
 
-**Version:** Pre-Release 0.20.1 (plugin version 0.20.1). See the [changelog](CHANGELOG.md).
+**Version:** Pre-Release 0.20.2 (plugin version 0.20.2). See the [changelog](CHANGELOG.md).
 **Tested on:** Giggleland v1.0.2 (Steam build 26276541, Unity 2022.3.62f2, IL2CPP), BepInEx 6.0.0-be.791, Windows 11.
 
 ---
@@ -24,6 +24,7 @@ Every option starts at **Preset**, which leaves the game's value alone. A fresh 
 - **Drop-down lists** for every choice (click anywhere on the row or press Submit to open, click or Up/Down/Submit to pick, click outside or Back to close; Left/Right still step) and **sliders** for numeric values, snapping to whole steps inside safe limits
 - **Render API**: DirectX 11, DirectX 12 or **Vulkan (DXVK)**, with a *Restart / Later* dialog. Restart reopens the game on the new API by itself
 - **Draw Distance** (slider, 10-45 m or *Game*, which is 50 m): how far the main camera draws
+- **Distance Fog** (slider: *Off*, *Sync to Draw Distance*, or 10-45 m): fades the world out with distance. *Sync to Draw Distance* (the default) keeps the fog at the edge of the Draw Distance setting, to soften the cut-off, and adds nothing when Draw Distance is on *Game*
 - **Small Object Culling**: Off / Low / Medium / High; skips props too small to matter at their distance
 - **Upscaling filter**: Bilinear, FSR 1.0 or Point, plus an **FSR Sharpness** slider. The game's Medium preset already renders at 0.5x scale, so FSR mostly makes it look sharper
 - **Volumetric Fog**: Off / Low / Medium / High (raymarch quality, downscaling, detail noise, high-quality scattering)
@@ -106,13 +107,13 @@ Giggleland is an IL2CPP Unity game, which needs the bleeding-edge BepInEx 6 buil
 
 ### 2. Install Giggleframes
 
-1. Download `Giggleframes-Pre-Release-0.20.1.zip` from [Releases](https://github.com/RealAnxiousGit/Giggleframes/releases).
+1. Download `Giggleframes-Pre-Release-0.20.2.zip` from [Releases](https://github.com/RealAnxiousGit/Giggleframes/releases).
 2. Extract it into the game folder. The plugin should end up at
    `Giggleland\BepInEx\plugins\Giggleframes\Giggleframes.dll`, with DXVK in `...\Giggleframes\dxvk` and the launch helper in `...\Giggleframes\launcher`.
    If you're updating from an older version, overwrite the old files; your settings carry over.
 3. Start the game and open **Settings → Graphics → Advanced**.
 
-`BepInEx\LogOutput.log` should contain `Giggleframes 0.20.1 loaded`.
+`BepInEx\LogOutput.log` should contain `Giggleframes 0.20.2 loaded`.
 
 ### Uninstalling
 
@@ -142,7 +143,8 @@ Settings are stored in `BepInEx\config\gigglelandperf.cfg` and can be edited wit
 |---|---|---|
 | Advanced | `renderApi`, `upscaling`, `volumetricFog`, … | Option index; `0` = Preset (game value) for most rows |
 | Advanced | `graphicsPreset` | 0 Custom, 1 Game Default, 2 Very Low, 3 Low-Spec, 4 Balanced |
-| Advanced | `drawDistanceSteps` | Draw distance in 5 m steps (2 = 10 m ... 11 = 55 m, 12 = game) |
+| Advanced | `drawDistanceSteps` | Draw distance in 5 m steps (2 = 10 m ... 9 = 45 m, 10 = game) |
+| Advanced | `distanceFog` | Distance Fog (0 = off, 1 = sync to Draw Distance, 2 = 10 m ... 9 = 45 m) |
 | Advanced | `fpsCounter` | FPS counter (0 off, 1 on) |
 | Debug | `DevCommands` | Enables the test command file (see below) |
 | Debug | `DumpOnLoad` | Logs the render state after each scene load |
@@ -174,6 +176,7 @@ dotnet build -c Release -p:GameDir="C:\Program Files (x86)\Steam\steamapps\commo
 | `src/Plugin.cs` | BepInEx entry point, Harmony patching, per-frame runner, FPS counter |
 | `src/Settings.cs` | Option definitions, config binding, presets, first-run hardware check |
 | `src/Culling.cs` | Draw Distance (far-plane cap at render time) and Small Object Culling (time-sliced) |
+| `src/DistanceFog.cs` | Distance Fog: linear fog tied to Draw Distance, restores the level's own fog when off |
 | `src/Dropdown.cs` | Drop-down lists for the Advanced page's rows, slider snapping |
 | `src/FpsCounter.cs` | Coloured FPS counter |
 | `src/Applier.cs` | Applies options to the URP asset, renderer features, fog, volumetric lights, post volumes, terrain and lights; restores the game's values when an option goes back to Preset |
